@@ -8,12 +8,16 @@ const { logger, auth } = require('./middlewares/middlewares')
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { use } = require('./router/customerRouter');
-
-
-
+const PORT = 3001;
+const path = require('path');
 
 // app.get('/redirect',(req,res)=>{
 //     res.redirect('http://localhost:3001/welcome');
+// })
+
+// app.use((req, res, next) => {
+//     res.header('Access-Control-Allow-Origin', "*")
+//     next();
 // })
 
 app.set('view engine', 'ejs')
@@ -36,11 +40,6 @@ const authUser = (req, res, next) => {
     }
 }
 
-
-app.get('/', authUser, (req, res) => {
-    
-    return res. render('welcome.ejs', { name: req.user?.userName });
-})
 
 app.use('/customer', authUser)
 
@@ -68,6 +67,10 @@ app.post('/register', async (req, res) => {
 
 })
 
+app.post('/logout', (req, res) => {
+    res.clearCookie("access_token").redirect('/')
+})
+
 app.get('/login', (req, res) => {
     res.render('login')
 })
@@ -78,8 +81,7 @@ app.post('/login', async (req, res) => {
 
 
     const user = req.body
-    console.log(user)
-    const access_token = jwt.sign(user, process.env.SECRET_KEY ,{expiresIn: '15m'});
+    const access_token = jwt.sign(user, process.env.SECRET_KEY, { expiresIn: '15m' });
     res.cookie('access_token', access_token, {
         httpOnly: true,
         sameSite: 'strict'
@@ -109,7 +111,13 @@ app.post('/login', async (req, res) => {
 app.use('/customer', customerRouter)
 
 
+app.use('*', authUser);
 
+app.use(express.static(path.join(__dirname, 'build'), { index: false }));
+
+app.get('*', authUser, function (req, res) {
+    res.sendFile(path.join(__dirname, 'build', 'index.html'));
+});
 
 
 
@@ -140,6 +148,6 @@ app.use('/customer', customerRouter)
 // app.put('/customer/:id',putCustomerController)
 
 
-app.listen(3000, () => {
-    console.log('app is listening on port 3000')
+app.listen(PORT, () => {
+    console.log(`app is listening on port ${PORT}`)
 })
